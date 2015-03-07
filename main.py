@@ -23,60 +23,36 @@ from google.appengine.api import memcache
 
 class MainHandler(webapp2.RequestHandler):
 
-    def get(self):
-    	github = self.request.get('github')
-    	repo = self.request.get('repo')
-    	item = memcache.get( github + 'randomhash' + repo)
+    def get(self,thing):
 
-    	if not item and github and repo  or (datetime.datetime.now() - item[1]) > datetime.timedelta(hours = 3) :
+    	item = memcache.get( thing )
 
-    		url = 'https://api.github.com/repos/' + github + '/' +repo
+    	if not item or (datetime.datetime.now() - item[1]) > datetime.timedelta(hours = 3) :
+
+    		url = 'https://api.github.com/' + thing
     		result = urlfetch.fetch(url)
     		item = [ result.content,  datetime.datetime.now() ]
-    		memcache.set(key = github + 'randomhash' + repo, value= item ) 
+    		memcache.set(key =  thing, value= item ) 
+
         self.response.headers.add_header("Access-Control-Allow-Origin", "*")
     	
         self.response.write(item[0])
 
-class UserHandler(webapp2.RequestHandler):
+class FlushHandler(webapp2.RequestHandler):
 
-    def get(self):
-        author = self.request.get('author')
+     def get(self):
         
-        item = memcache.get( author )
+        memcache.flush_all()
 
-        if not item and author or (datetime.datetime.now() - item[1]) > datetime.timedelta(hours = 3) :
-
-            url = 'https://api.github.com/users/' + author 
-            result = urlfetch.fetch(url)
-            item = [ result.content,  datetime.datetime.now() ]
-            memcache.set(key = author, value= item ) 
-        self.response.headers.add_header("Access-Control-Allow-Origin", "*")
+        self.response.write("flushed cache")
         
-        self.response.write(item[0])
 
-class StatsHandler(webapp2.RequestHandler):
-
-    def get(self):
-        github = self.request.get('github')
-        repo = self.request.get('repo')
-        item = memcache.get( github + 'stats' + repo)
-
-        if not item and github and repo or (datetime.datetime.now() - item[1]) > datetime.timedelta(hours = 3) :
-
-            url = 'https://api.github.com/repos/' + github + '/' + repo + "/stats/contributors"
-            result = urlfetch.fetch(url)
-            item = [ result.content,  datetime.datetime.now() ]
-            memcache.set(key = github + 'stats' + repo, value= item ) 
-        self.response.headers.add_header("Access-Control-Allow-Origin", "*")
-        
-        self.response.write(item[0])
 
 
 
 app = webapp2.WSGIApplication([
-    ('/stats/contributors', StatsHandler),
-    ('/users', UserHandler),
-    ('/', MainHandler)
+    ('/admin/flush', FlushHandler),
+    ('/(.+)', MainHandler)
+   
 ], debug=True)
      
