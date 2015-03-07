@@ -21,21 +21,19 @@ import datetime
 from google.appengine.api import urlfetch
 from google.appengine.api import memcache
 
-class MainHandler(webapp2.RequestHandler):
+class GitHandler(webapp2.RequestHandler):
 
     def get(self,thing):
-
     	item = memcache.get( thing )
-
-    	if not item or (datetime.datetime.now() - item[1]) > datetime.timedelta(hours = 3) :
-
-    		url = 'https://api.github.com/' + thing
-    		result = urlfetch.fetch(url)
-    		item = [ result.content,  datetime.datetime.now() ]
-    		memcache.set(key =  thing, value= item ) 
-
+    	if not item or (datetime.datetime.now() - item[1]) > datetime.timedelta(hours = 3):
+            url = 'https://api.github.com/' + thing
+            try: 
+              result = urlfetch.fetch(url)
+              item = [ result.content,  datetime.datetime.now() ]
+            except:
+              item = [json.dumps({'message': "Request to github failed - try again later. Something might be wrong with github's site. Check with github " }), datetime.datetime.now() ]
+            memcache.set(key =  thing, value= item )   
         self.response.headers.add_header("Access-Control-Allow-Origin", "*")
-    	
         self.response.write(item[0])
 
 class FlushHandler(webapp2.RequestHandler):
@@ -45,6 +43,39 @@ class FlushHandler(webapp2.RequestHandler):
         memcache.flush_all()
 
         self.response.write("flushed cache")
+
+class MainHandler(webapp2.RequestHandler):
+
+    def get(self):
+
+        self.response.write("""
+            <html>
+            <head>
+            <title>Github Cacher</title>
+            </head>
+            <body>
+
+            <p>Hello! 
+            This is a little app that I'm using to cache requests to Github's api 
+            so that I don't hit their limit on requests quite as fast. Please don't abuse this service.
+            </p>
+            <p> Code is at <a href="https://github.com/BenRuns/git-cacher">Github</a>
+            </p>
+            <p>
+            to use this, just replace api.github.com with
+            git-hub-cacher.appspot.com</p>
+            <p> to flush the cache on this site,
+            visit git-hub-cacher.appspot.com/admin/flush </p>
+            <p> This will make me hit github's rate limits sooner so please avoid flushing the cache automatically ...etc..</p>
+
+
+            </body>
+            </html>
+            </html>
+
+
+            """)
+
         
 
 
@@ -52,7 +83,8 @@ class FlushHandler(webapp2.RequestHandler):
 
 app = webapp2.WSGIApplication([
     ('/admin/flush', FlushHandler),
-    ('/(.+)', MainHandler)
+    ('/(.+)', GitHandler),
+    ('/', MainHandler)
    
 ], debug=True)
      
