@@ -33,6 +33,8 @@ class GitHandler(webapp2.RequestHandler):
             except:
               item = [json.dumps({'message': "Request to github failed - try again later. Something might be wrong with github's site. Check with github " }), datetime.datetime.now() ]
             memcache.set(key =  thing, value= item )   
+            
+        self.response.headers['Content-Type'] = 'application/json'   
         self.response.headers.add_header("Access-Control-Allow-Origin", "*")
         self.response.write(item[0])
 
