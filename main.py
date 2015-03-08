@@ -25,16 +25,19 @@ class GitHandler(webapp2.RequestHandler):
 
     def get(self,thing):
     	item = memcache.get( thing )
+        
     	if not item or (datetime.datetime.now() - item[1]) > datetime.timedelta(hours = 3):
             url = 'https://api.github.com/' + thing
             try: 
               result = urlfetch.fetch(url)
-              item = [ result.content,  datetime.datetime.now() ]
+              item = [ result.content,  datetime.datetime.now(), result.status_code ]
+              
             except:
-              item = [json.dumps({'message': "Request to github failed - try again later. Something might be wrong with github's site. Check with github " }), datetime.datetime.now() ]
+              item = [json.dumps({'message': "Request to github failed - try again later. Something might be wrong with github's site. Check with github " }), datetime.datetime.now(), 401  ]
             memcache.set(key =  thing, value= item )   
-            
+
         self.response.headers['Content-Type'] = 'application/json'   
+        self.response.set_status(item[2])
         self.response.headers.add_header("Access-Control-Allow-Origin", "*")
         self.response.write(item[0])
 
