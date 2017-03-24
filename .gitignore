@@ -1,0 +1,10 @@
+python_modules
+node_modules
+env
+.eggs
+.cache
+*.pyc
+secrets.json
+website.egg-info
+app/__pycache__
+tests/__pycache__
