@@ -17,8 +17,8 @@ runs on google app engine
 2. In the root directory create a secret.json file with the following
         {
           "github:{
-            "client_id": id_from_step_2,
-            "client_secret": secret_from_step_2
+            "client_id": id_from_step_1,
+            "client_secret": secret_from_step_1
           }
         }
 3.  Run the app
