@@ -16,27 +16,32 @@
 #
 import webapp2
 import json
+import os
 import datetime
 
 from google.appengine.api import urlfetch
 from google.appengine.api import memcache
+f = open(os.path.dirname(__file__) + '/secrets.json', 'r')
+secrets = json.loads(f.read())
+f.close()
 
 class GitHandler(webapp2.RequestHandler):
 
     def get(self,thing):
     	item = memcache.get( thing )
-        
-    	if not item or (datetime.datetime.now() - item[1]) > datetime.timedelta(hours = 3):
-            url = 'https://api.github.com/' + thing
-            try: 
+
+    	if not item or (datetime.datetime.now() - item[1]) > datetime.timedelta(hours = 12):
+            url = 'https://api.github.com/' + thing + '?client_id=' + secrets['github']['client_id'] + '&client_secret=' + secrets['github']['client_secret']
+            try:
               result = urlfetch.fetch(url)
               item = [ result.content,  datetime.datetime.now(), result.status_code ]
-              
             except:
               item = [json.dumps({'message': "Request to github failed - try again later. Something might be wrong with github's site. Check with github " }), datetime.datetime.now(), 401  ]
-            memcache.set(key =  thing, value= item )   
+            if item[2] == 200:
+              memcache.set(key =  thing, value= item )
 
-        self.response.headers['Content-Type'] = 'application/json'   
+
+        self.response.headers['Content-Type'] = 'application/json'
         self.response.set_status(item[2])
         self.response.headers.add_header("Access-Control-Allow-Origin", "*")
         self.response.write(item[0])
@@ -44,7 +49,7 @@ class GitHandler(webapp2.RequestHandler):
 class FlushHandler(webapp2.RequestHandler):
 
      def get(self):
-        
+
         memcache.flush_all()
 
         self.response.write("flushed cache")
@@ -60,8 +65,8 @@ class MainHandler(webapp2.RequestHandler):
             </head>
             <body>
 
-            <p>Hello! 
-            This is a little app that I'm using to cache requests to Github's api 
+            <p>Hello!
+            This is a little app that I'm using to cache requests to Github's api
             so that I don't hit their limit on requests quite as fast. Please don't abuse this service.
             </p>
             <p> Code is at <a href="https://github.com/BenRuns/git-cacher">Github</a>
@@ -81,7 +86,7 @@ class MainHandler(webapp2.RequestHandler):
 
             """)
 
-        
+
 
 
 
@@ -90,6 +95,6 @@ app = webapp2.WSGIApplication([
     ('/admin/flush', FlushHandler),
     ('/(.+)', GitHandler),
     ('/', MainHandler)
-   
+
 ], debug=True)
-     
+
